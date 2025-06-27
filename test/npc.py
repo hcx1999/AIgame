@@ -1,18 +1,25 @@
-
 from camel.agents import ChatAgent
 from camel.models import ModelFactory
-from camel.types import ModelPlatformType
+from camel.types import ModelPlatformType, ModelType
+import os
+
+from camel.utils import OpenAITokenCounter
+from dotenv import load_dotenv
+from safe_token_counter import SimpleTokenCounter
+
+load_dotenv()
 
 model = ModelFactory.create(
     model_platform=ModelPlatformType.OPENAI_COMPATIBLE_MODEL,
     model_type="Qwen/QwQ-32B",
     url='https://api.siliconflow.cn/v1',
-    api_key='sk-qseennfhdprismchczwnkzpohyjmuwgpiaywuclsisgugfvo'
+    api_key=os.getenv("SILICONFLOW_API_KEY"),
+    token_counter=SimpleTokenCounter()
 )
 
 agent = ChatAgent(
     model=model,
-    output_language='中文'
+    output_language='中文',
 )
 
 #while True:
@@ -24,8 +31,8 @@ agent = ChatAgent(
 #str由character，info_str构成
 #character是形如['钟离','胡桃’,'空']
 #info_str则为当前剧情加玩家选择比如'四个人一起玩炸金花，玩家选择作弊。'
-def interact(str):
-    character,info_str=str #character是字典
+def interact(info):
+    character,info_str=info #character是字典
     return_info=[]
     for dic in character.keys():
         #print("当前角色:", dic)
@@ -33,7 +40,6 @@ def interact(str):
         name=dic
         des=character[dic]["traits"] #这意味着character是一个字典
         input=info_str+'你是'+name+'，你的性格如下：'+des+'请以'+name+"为主语写一下接下来的言行，控制在50字以内。要求能够让故事能持续下去，不必完结太快。"
-        #print(input)
         response = agent.step(input)
         return_info.append({"role": name, "content": response.msgs[0].content})
         return_str += name + "做了:" + response.msgs[0].content.strip() + "\n"

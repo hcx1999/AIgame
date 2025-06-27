@@ -1,5 +1,7 @@
-python=3.10
+python==3.10
 openai>=1.0.0
-camel-ai=0.2.66
-requests>=2.28.0
+camel-ai==0.2.66
+requests>=2.31.0  # API调用依赖
+python-dotenv
+tiktoken>=0.7.0
 pillow>=9.0.0

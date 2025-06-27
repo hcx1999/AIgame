@@ -1,6 +1,13 @@
 from camel.models import ModelFactory
-from camel.types import ModelPlatformType
+from camel.types import ModelPlatformType, ModelType
 from typing import List, Generator
+import os
+
+from camel.utils import OpenAITokenCounter
+from dotenv import load_dotenv
+from safe_token_counter import SimpleTokenCounter
+
+load_dotenv()
 
 class ChatBot:
     def __init__(
@@ -21,9 +28,11 @@ class ChatBot:
                 model_platform=ModelPlatformType.OPENAI_COMPATIBLE_MODEL,
                 model_type="Qwen/QwQ-32B",  # 或者你的具体模型名
                 url='https://api.siliconflow.cn/v1',
-                api_key='sk-qseennfhdprismchczwnkzpohyjmuwgpiaywuclsisgugfvo',
-                model_config_dict={"stream": True}
+                api_key=os.getenv("SILICONFLOW_API_KEY"),
+                model_config_dict={"stream": True},
+                token_counter=SimpleTokenCounter()
             )
+            model._token_counter_func = lambda x: len(x.split())
         self.model = model
         self.system_prompt = system_prompt
         self.chat_history: List[dict] = [

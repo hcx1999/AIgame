@@ -2,10 +2,14 @@ import sys
 import threading
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QScrollArea, QSizePolicy, QTextEdit, QPushButton)
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QThread
 from ctrller import Controller
 from chatbot import ChatBot
+from dotenv import load_dotenv
+from pic import generate_style_image
+
+load_dotenv()
 
 
 class BubbleLabel(QLabel):
@@ -57,6 +61,7 @@ class MainWindow(QMainWindow):
         self.bot = ChatBot()
         self.setup_ui()
         self.background_summary = ""
+        self.last_image_path = "./test.png"
         QTimer.singleShot(0, self.start_game_thread)
 
     def setup_ui(self):
@@ -109,6 +114,14 @@ class MainWindow(QMainWindow):
 
     def update_ui(self, narrative, new_role, options):
         self.add_story(narrative)
+
+        new_image_path = generate_style_image(narrative, self.last_image_path)
+        image_label = QLabel()
+        image_pic = QPixmap(new_image_path)
+        image_label.setPixmap(image_pic)
+        self.story_area.add_widget(image_label)
+        self.last_image_path = new_image_path
+
         if new_role:
             self.add_story(f"你遇到了 {new_role[0]}!")
         if options:

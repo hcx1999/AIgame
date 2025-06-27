@@ -138,7 +138,7 @@ def generate_style_image(prompt, reference_image_path, model="black-forest-labs/
         response = client.images.generate(
             model=model,
             prompt=style_prompt,
-            size="1024x1024",
+            size="256x256",
             n=1,
         )
         
@@ -150,11 +150,8 @@ def generate_style_image(prompt, reference_image_path, model="black-forest-labs/
             os.remove(resized_image_path)
         
         if image_response.status_code == 200:
-            if not os.path.exists("generated_images"):
-                os.makedirs("generated_images")
-            
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"generated_images/style_{timestamp}.png"
+            filename = f"style_{timestamp}.png"
             
             with open(filename, 'wb') as f:
                 f.write(image_response.content)

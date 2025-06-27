@@ -4,21 +4,29 @@ from camel.models import ModelFactory
 from camel.types import ModelType, ModelPlatformType
 from typing import Dict, List, Tuple, Any
 import re
+import os
+from camel.utils import OpenAITokenCounter
+from safe_token_counter import SimpleTokenCounter
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class GodAgent:
     def __init__(
             self,
-            model=ModelFactory.create(
-                model_platform=ModelPlatformType.OPENAI_COMPATIBLE_MODEL,
-                model_type="Qwen/QwQ-32B",
-                url='https://api.siliconflow.cn/v1',
-                api_key='sk-qseennfhdprismchczwnkzpohyjmuwgpiaywuclsisgugfvo'
-            ),
+            model=None,
             system_message: str = "你是一位游戏叙事控制者",
             verbose: bool = False
     ):
         self.system_message = system_message
+        if model is None:
+            model = ModelFactory.create(
+                    model_platform=ModelPlatformType.OPENAI_COMPATIBLE_MODEL,
+                    model_type="Qwen/QwQ-32B",
+                    url='https://api.siliconflow.cn/v1',
+                    api_key=os.getenv("SILICONFLOW_API_KEY"),
+                    token_counter=SimpleTokenCounter()
+                )
         self.model = model
         self.verbose = verbose
 

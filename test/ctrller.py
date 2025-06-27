@@ -25,7 +25,6 @@ class Controller(QObject):
     def run(self):
         self.background_loop = QEventLoop()
         self.background_loop.exec_()
-        self.update_signal.emit("开始游戏", [], [])
         while True:
             narrative, options, new_role = self.god.generate_narrative()
             self.update_signal.emit(narrative, new_role, options)
