@@ -49,34 +49,49 @@ class ChatBot:
 
     def chat_stream(self, user_input: str) -> Generator[str, None, None]:
         try:
+            print(f"=== ChatBot.chat_stream 开始 ===")
+            print(f"用户输入: {user_input}")
+            
             if not user_input or not user_input.strip():
                 logger.warning("用户输入为空")
                 yield "请输入有效的内容。"
                 return
 
             self.chat_history.append({"role": "user", "content": user_input})
+            print(f"聊天历史长度: {len(self.chat_history)}")
 
             # 流式输出
+            print("开始调用API...")
             response = self.model._client.chat.completions.create(
                 model=self.model.model_type,
                 messages=self.chat_history,
                 stream=True
             )
+            print("API调用成功，开始处理响应...")
 
             full_reply = ""
+            chunk_count = 0
             for chunk in response:
                 try:
+                    chunk_count += 1
                     content = chunk.choices[0].delta.content or ""
-                    full_reply += content
-                    yield content  # 流式输出
+                    if content:
+                        full_reply += content
+                        print(f"响应块 {chunk_count}: {content[:30]}...")
+                        yield content  # 流式输出
                 except Exception as chunk_error:
                     logger.error(f"处理流式响应块时出错: {str(chunk_error)}")
+                    print(f"响应块处理错误: {chunk_error}")
                     continue
 
+            print(f"=== 流式响应完成，共{chunk_count}个块，总长度{len(full_reply)} ===")
             self.chat_history.append({"role": "assistant", "content": full_reply})
 
         except Exception as e:
             logger.error(f"聊天流处理失败: {str(e)}")
+            print(f"ChatBot异常: {str(e)}")
+            import traceback
+            traceback.print_exc()
             yield f"抱歉，处理您的请求时出现错误: {str(e)}"
 
     def reset(self):
