@@ -70,6 +70,9 @@ class MainWindow(QMainWindow):
         self.story_scroll.setStyleSheet("background-color: white;")
 
         self.chat_area = ScrollablePanel()
+        bot_bubble = BubbleLabel("我是你的智能游戏助手，请向我发送你想要的游戏背景来开始游戏吧！或者你也可以跟我聊聊你感兴趣的其他事情", is_bot=True)
+        self.chat_area.add_widget(bot_bubble)
+
         self.chat_scroll = QScrollArea()
         self.chat_scroll.setWidgetResizable(True)
         self.chat_scroll.setWidget(self.chat_area)
