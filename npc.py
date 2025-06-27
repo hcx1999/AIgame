@@ -15,11 +15,6 @@ logger = logging.getLogger(__name__)
 try:
     # 优先从环境变量读取 API key，如果没有则使用硬编码值
     api_key = os.getenv("SILICONFLOW_API_KEY")
-    if not api_key:
-        api_key = 'sk-qseennfhdprismchczwnkzpohyjmuwgpiaywuclsisgugfvo'
-        logger.info("使用默认 API key")
-    else:
-        logger.info("使用环境变量中的 API key")
     
     model = ModelFactory.create(
         model_platform=ModelPlatformType.OPENAI_COMPATIBLE_MODEL,
