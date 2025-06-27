@@ -116,7 +116,7 @@ class MainWindow(QMainWindow):
             
             self.option_buttons = []
             self.background_summary = ""
-            self.last_image_path = resource_path("test.png")
+            self.last_image_path = resource_path("test.jpg")
             self.game_started = False
             self.options_hint = None
             self.bot = None  # 延迟初始化ChatBot

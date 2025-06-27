@@ -2,6 +2,8 @@ from god import GodAgent
 import npc
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QThread, QEventLoop
 import logging
+from dotenv import load_dotenv
+load_dotenv()
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)

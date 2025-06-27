@@ -4,6 +4,8 @@ import os
 from datetime import datetime
 from PIL import Image
 import logging
+from dotenv import load_dotenv
+load_dotenv()
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -12,7 +14,7 @@ logger = logging.getLogger(__name__)
 # 配置 SiliconFlow API
 try:
     client = openai.OpenAI(
-        api_key='sk-qseennfhdprismchczwnkzpohyjmuwgpiaywuclsisgugfvo',
+        api_key=os.getenv("SILICONFLOW_API_KEY"),
         base_url='https://api.siliconflow.cn/v1'
     )
     logger.info("OpenAI 客户端初始化成功")
