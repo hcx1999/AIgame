@@ -23,13 +23,18 @@ logger = logging.getLogger(__name__)
 
 class ChatWorker(QObject):
     stream_signal = pyqtSignal(str)
+    char_signal = pyqtSignal(str)  # 单字符信号，用于更流畅的显示
+    batch_signal = pyqtSignal(str)  # 批量字符信号，用于平滑流式输出
     finish_signal = pyqtSignal()
 
-    def __init__(self, bot, user_input: str):
+    def __init__(self, bot, user_input: str, typing_speed=0.005):
         try:
             super().__init__()
             self.bot = bot
             self.user_input = user_input
+            self.accumulated_response = ""
+            self.typing_speed = typing_speed  # 可调节的打字速度
+            self.batch_size = 3  # 批量发送字符数，平衡流畅度和性能
         except Exception as e:
             logger.error(f"ChatWorker 初始化失败: {str(e)}")
 
@@ -40,9 +45,32 @@ class ChatWorker(QObject):
             print(f"ChatBot实例: {self.bot}")  # 调试日志
             
             chunk_count = 0
+            char_buffer = ""
+            
             for chunk in self.bot.chat_stream(self.user_input):
                 chunk_count += 1
                 print(f"收到第{chunk_count}个响应块: {chunk[:50]}...")  # 调试日志
+                
+                # 批量处理字符以提高性能
+                for char in chunk:
+                    self.accumulated_response += char
+                    char_buffer += char
+                    
+                    # 当缓冲区达到批量大小或遇到标点符号时发送
+                    if len(char_buffer) >= self.batch_size or char in '，。！？；：':
+                        self.batch_signal.emit(char_buffer)
+                        char_buffer = ""
+                        
+                        # 优化的延迟控制
+                        import time
+                        time.sleep(self.typing_speed)
+                
+                # 发送剩余的字符
+                if char_buffer:
+                    self.batch_signal.emit(char_buffer)
+                    char_buffer = ""
+                
+                # 同时发送完整的chunk用于兼容
                 self.stream_signal.emit(chunk)
             
             print(f"=== ChatWorker 完成，共收到{chunk_count}个响应块 ===")  # 调试日志
@@ -93,6 +121,22 @@ class MainWindow(QMainWindow):
             self.options_hint = None
             self.bot = None  # 延迟初始化ChatBot
             self.current_user_input = ""  # 保存当前用户输入
+            
+            # 流式输出相关状态
+            self.is_streaming = False
+            self.current_response = ""
+            self.cursor_visible = True
+            self.typing_speed = 0.005  # 默认打字速度
+            
+            # 光标闪烁定时器
+            self.cursor_timer = QTimer()
+            self.cursor_timer.timeout.connect(self.toggle_cursor)
+            
+            # UI更新定时器，用于批量更新减少重绘
+            self.ui_update_timer = QTimer()
+            self.ui_update_timer.timeout.connect(self.batch_update_ui)
+            self.ui_update_timer.setSingleShot(True)
+            self.pending_ui_update = False
             
             # 创建状态栏
             self.create_status_bar()
@@ -149,6 +193,14 @@ class MainWindow(QMainWindow):
             exit_action.setShortcut('Ctrl+Q')
             exit_action.triggered.connect(self.close)
             file_menu.addAction(exit_action)
+            
+            # 设置菜单
+            settings_menu = menubar.addMenu('设置(&S)')
+            
+            # 流式输出设置
+            typing_speed_action = QAction('打字机速度(&T)', self)
+            typing_speed_action.triggered.connect(self.show_typing_speed_dialog)
+            settings_menu.addAction(typing_speed_action)
             
             # 帮助菜单
             help_menu = menubar.addMenu('帮助(&H)')
@@ -918,7 +970,7 @@ class MainWindow(QMainWindow):
                 return
             found_keywords = check_prompt_injection(user_text)
             if found_keywords:
-                warning_msg = f"检测到潜在的提示注入关键词：{"，".join(found_keywords)}"
+                warning_msg = f"检测到潜在的提示注入关键词：{','.join(found_keywords)}"
                 QMessageBox.warning(self, "提示注入检测", warning_msg)
                 return
             sensitive_keywords = search_keywords_in_text(user_text)
@@ -929,6 +981,8 @@ class MainWindow(QMainWindow):
 
             # 保存用户输入
             self.current_user_input = user_text
+            self.current_response = ""
+            self.is_streaming = True
             
             # 显示最新的对话 - 只显示当前这一轮
             self.narrative_content.setText(f"👤 你：{user_text}\n\n🤖 AI助手：正在思考...")
@@ -950,16 +1004,27 @@ class MainWindow(QMainWindow):
             print("创建聊天工作线程...")  # 调试日志
             # 创建聊天工作线程
             self.chat_thread = QThread()
-            self.chat_worker = ChatWorker(self.bot, user_text)
+            self.chat_worker = ChatWorker(self.bot, user_text, self.typing_speed)
             self.chat_worker.moveToThread(self.chat_thread)
 
+            # 连接信号
             self.chat_worker.stream_signal.connect(self.process_chat_response)
+            self.chat_worker.char_signal.connect(self.process_char_response)
+            self.chat_worker.batch_signal.connect(self.process_batch_response)  # 新增批量字符处理
             self.chat_worker.finish_signal.connect(self.chat_finished)
             self.chat_thread.started.connect(self.chat_worker.run)
             self.chat_thread.finished.connect(self.chat_worker.deleteLater)
             self.chat_thread.finished.connect(self.chat_thread.deleteLater)
 
             print("启动聊天线程...")  # 调试日志
+            
+            # 设置流式输出状态
+            self.is_streaming = True
+            self.current_response = ""
+            
+            # 启动光标闪烁效果
+            self.start_cursor_animation()
+            
             self.chat_thread.start()
             print("聊天线程已启动")  # 调试日志
             
@@ -995,6 +1060,63 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"重置输入框样式失败: {str(e)}")
     
+    def start_cursor_animation(self):
+        """启动光标闪烁动画"""
+        self.cursor_visible = True
+        self.cursor_timer.start(500)  # 每500ms闪烁一次
+    
+    def stop_cursor_animation(self):
+        """停止光标闪烁动画"""
+        self.cursor_timer.stop()
+        self.cursor_visible = False
+    
+    def toggle_cursor(self):
+        """切换光标显示状态"""
+        self.cursor_visible = not self.cursor_visible
+        self.request_ui_update()
+    
+    def request_ui_update(self):
+        """请求UI更新（批量更新以减少重绘）"""
+        if not self.pending_ui_update:
+            self.pending_ui_update = True
+            self.ui_update_timer.start(16)  # ~60fps更新频率
+    
+    def batch_update_ui(self):
+        """批量更新UI"""
+        try:
+            if self.pending_ui_update:
+                self.pending_ui_update = False
+                
+                # 构建显示文本
+                cursor_char = "▋" if self.cursor_visible and self.is_streaming else ""
+                display_text = f"👤 你：{self.current_user_input}\n\n🤖 AI助手：{self.current_response}{cursor_char}"
+                
+                # 更新显示
+                self.narrative_content.setText(display_text)
+                
+                # 平滑滚动到底部
+                self.smooth_scroll_to_bottom()
+                
+        except Exception as e:
+            logger.error(f"批量UI更新失败: {str(e)}")
+    
+    def smooth_scroll_to_bottom(self):
+        """平滑滚动到底部"""
+        try:
+            scrollbar = self.narrative_scroll.verticalScrollBar()
+            scrollbar.setValue(scrollbar.maximum())
+        except Exception as e:
+            logger.error(f"滚动失败: {str(e)}")
+    
+    def process_batch_response(self, batch_text: str):
+        """处理批量字符AI响应流 - 优化的打字机效果"""
+        try:
+            self.current_response += batch_text
+            self.request_ui_update()
+            
+        except Exception as e:
+            logger.error(f"处理批量字符AI响应失败: {str(e)}")
+
     def chat_finished(self):
         """聊天完成后的处理"""
         try:
@@ -1005,34 +1127,51 @@ class MainWindow(QMainWindow):
             self.send_button.setEnabled(True)
             self.send_button.setText("发送 📤")
             
+            # 重置流式状态
+            self.is_streaming = False
+            
+            # 停止光标动画和UI更新
+            self.stop_cursor_animation()
+            self.ui_update_timer.stop()
+            
+            # 最终UI更新，移除光标
+            display_text = f"👤 你：{self.current_user_input}\n\n🤖 AI助手：{self.current_response}"
+            self.narrative_content.setText(display_text)
+            self.smooth_scroll_to_bottom()
+            
             # 清理响应状态
             if hasattr(self, 'current_response'):
-                delattr(self, 'current_response')
+                # 保持最终响应，不删除
+                pass
             
             if hasattr(self, 'chat_thread'):
                 self.chat_thread.quit()
                 
+            self.status_bar.showMessage("对话完成")
+            print("=== 聊天完成，UI状态已恢复 ===")
+                
         except Exception as e:
             logger.error(f"聊天完成处理失败: {str(e)}")
 
+    def process_char_response(self, char: str):
+        """处理单字符AI响应流 - 向后兼容，现在主要使用批量处理"""
+        try:
+            if not hasattr(self, 'current_response'):
+                self.current_response = ""
+            
+            self.current_response += char
+            
+            # 使用批量更新机制
+            self.request_ui_update()
+            
+        except Exception as e:
+            logger.error(f"处理单字符AI响应失败: {str(e)}")
+
     def process_chat_response(self, chunk: str):
-        """处理AI响应流"""
+        """处理AI响应流 - 兼容模式，主要用于背景总结检测"""
         try:
             chunk = chunk.strip()
             if chunk != '':
-                # 将响应累积起来
-                if not hasattr(self, 'current_response'):
-                    self.current_response = ""
-                
-                self.current_response += chunk
-                
-                # 更新显示 - 只显示当前这一轮对话
-                display_text = f"👤 你：{self.current_user_input}\n\n🤖 AI助手：{self.current_response}"
-                self.narrative_content.setText(display_text)
-                
-                # 自动滚动到底部
-                QTimer.singleShot(50, self.scroll_narrative_to_bottom)
-                
                 # 检查是否包含背景总结
                 if "【背景总结】" in self.current_response and self.background_summary == "":
                     if "。" in self.current_response:
@@ -1052,9 +1191,57 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"处理AI响应失败: {str(e)}")
 
+    def show_typing_speed_dialog(self):
+        """显示打字机速度设置对话框"""
+        try:
+            from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QSlider, QLabel, QPushButton
+            
+            dialog = QDialog(self)
+            dialog.setWindowTitle("打字机速度设置")
+            dialog.setFixedSize(350, 150)
+            
+            layout = QVBoxLayout(dialog)
+            
+            # 标题
+            title_label = QLabel("🎬 调整AI回复打字机效果速度")
+            title_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #2196F3;")
+            layout.addWidget(title_label)
+            
+            # 速度滑块
+            speed_label = QLabel("打字速度:")
+            layout.addWidget(speed_label)
+            
+            speed_slider = QSlider(Qt.Horizontal)
+            speed_slider.setRange(1, 100)
+            current_speed_value = int((0.1 - self.typing_speed) * 1000)
+            speed_slider.setValue(max(1, min(100, current_speed_value)))
+            layout.addWidget(speed_slider)
+            
+            # 按钮
+            button_layout = QHBoxLayout()
+            ok_button = QPushButton("确定")
+            cancel_button = QPushButton("取消")
+            
+            def apply_settings():
+                speed_value = speed_slider.value()
+                self.typing_speed = 0.1 - (speed_value - 1) * 0.099 / 99
+                self.status_bar.showMessage(f"打字机速度已设置: {speed_value}/100", 3000)
+                dialog.accept()
+            
+            ok_button.clicked.connect(apply_settings)
+            cancel_button.clicked.connect(dialog.reject)
+            
+            button_layout.addWidget(cancel_button)
+            button_layout.addWidget(ok_button)
+            layout.addLayout(button_layout)
+            
+            dialog.exec_()
+            
+        except Exception as e:
+            logger.error(f"显示设置对话框失败: {str(e)}")
+
 def resource_path(relative_path):
     import sys, os
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.abspath(relative_path)
-
