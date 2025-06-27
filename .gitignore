@@ -4,3 +4,8 @@
 /test/__pycache__
 /.idea
 test/AIGame.spec
+/generated_images
+/__pycache__
+/report
+/build
+/dist

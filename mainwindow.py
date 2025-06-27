@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
             
             self.option_buttons = []
             self.background_summary = ""
-            self.last_image_path = "./test.png"
+            self.last_image_path = resource_path("test.png")
             self.game_started = False
             self.options_hint = None
             self.bot = None  # 延迟初始化ChatBot
@@ -1051,3 +1051,10 @@ class MainWindow(QMainWindow):
                             
         except Exception as e:
             logger.error(f"处理AI响应失败: {str(e)}")
+
+def resource_path(relative_path):
+    import sys, os
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.abspath(relative_path)
+

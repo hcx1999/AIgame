@@ -3,6 +3,9 @@
 
 import sys
 from PyQt5.QtWidgets import QApplication
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def main():
     """启动多智能体剧情游戏"""
