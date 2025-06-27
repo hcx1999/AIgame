@@ -212,12 +212,6 @@ def main():
         
         # 检查多个可能的参考图片路径
         possible_paths = [
-            "./generated_images/test.png",
-            "./test.png", 
-            "./sample.png",
-            "./image.png",
-            "./reference.png",
-            "./ref.jpg",
             "./test.jpg"
         ]
         
@@ -253,7 +247,7 @@ def main():
                     if not os.path.exists("generated_images"):
                         os.makedirs("generated_images")
                     
-                    test_path = "./generated_images/test.png"
+                    test_path = "./generated_images/test.jpg"
                     with open(test_path, 'wb') as f:
                         f.write(test_img_response.content)
                     
