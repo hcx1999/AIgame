@@ -1,8 +1,26 @@
+# Python版本要求
 python>=3.10
+
+# 核心AI和模型依赖
 openai>=1.0.0
 camel-ai==0.2.66
-requests>=2.32.4  # API调用依赖
-python-dotenv
 tiktoken>=0.7.0
+
+# GUI界面依赖
+PyQt5>=5.15.0
+
+# 网络和API依赖
+requests>=2.32.4
+
+# 配置和环境
+python-dotenv>=1.0.0
+
+# 图像处理
 pillow>=9.0.0
-flashtext
+
+# 文本处理和安全
+flashtext>=2.7
+ahocorasick>=2.0.0
+
+# 日志和调试
+logging
