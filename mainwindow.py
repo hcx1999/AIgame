@@ -911,11 +911,22 @@ class MainWindow(QMainWindow):
                 # 2秒后恢复正常样式
                 QTimer.singleShot(2000, self.reset_input_style)
                 return
-            
-            if len(user_text) > 2000:
-                QMessageBox.warning(self, '输入过长', '消息长度不能超过2000字符，请缩短后重试。')
+
+            user_text = truncate_text(user_text, 100)
+            if user_text == "__超出字数限制":
+                QMessageBox.warning(self, "字数限制检测", "输入字符过多，超出字数限制")
                 return
-            
+            found_keywords = check_prompt_injection(user_text)
+            if found_keywords:
+                warning_msg = f"检测到潜在的提示注入关键词：{"，".join(found_keywords)}"
+                QMessageBox.warning(self, "提示注入检测", warning_msg)
+                return
+            sensitive_keywords = search_keywords_in_text(user_text)
+            if sensitive_keywords:
+                warning_msg = f"检测到敏感词：{', '.join(sensitive_keywords)}\n请修改内容避免违规。"
+                QMessageBox.warning(self, "敏感词检测", warning_msg)
+                return
+
             # 保存用户输入
             self.current_user_input = user_text
             
