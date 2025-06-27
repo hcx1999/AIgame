@@ -126,7 +126,7 @@ class MainWindow(QMainWindow):
 
     def update_NPC(self, npc_info):
         for npc in npc_info:
-            self.add_story(f"{npc["role"]}: {npc['content'].strip()}")
+            self.add_story(f"{npc['role']}: {npc['content'].strip()}")
 
     def choose_option(self, content):
         if hasattr(self, 'send_choice_to_ctrller'):
