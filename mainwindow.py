@@ -1,14 +1,15 @@
 import sys
 import threading
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QLabel, QScrollArea, QSizePolicy, QTextEdit, QPushButton)
+                             QLabel, QScrollArea, QSizePolicy, QTextEdit, QPushButton, QMessageBox)
 from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QThread
 from ctrller import Controller
 from chatbot import ChatBot
 import logging
 from dotenv import load_dotenv
-
+from Prompt_injection import check_prompt_injection, truncate_text
+from Sensitive_word_screening import search_keywords_in_text
 from pic import generate_style_image
 
 load_dotenv()
@@ -212,6 +213,21 @@ class MainWindow(QMainWindow):
             if not user_text:
                 return
             self.input_box.clear()
+
+            user_text = truncate_text(user_text, 100)
+            if user_text == "__超出字数限制":
+                QMessageBox.warning(self, "字数限制检测", "输入字符过多，超出字数限制")
+                return
+            found_keywords = check_prompt_injection(user_text)
+            if found_keywords:
+                warning_msg = f"检测到潜在的提示注入关键词：{"，".join(found_keywords)}"
+                QMessageBox.warning(self, "提示注入检测", warning_msg)
+                return
+            sensitive_keywords = search_keywords_in_text(user_text)
+            if sensitive_keywords:
+                warning_msg = f"检测到敏感词：{', '.join(sensitive_keywords)}\n请修改内容避免违规。"
+                QMessageBox.warning(self, "敏感词检测", warning_msg)
+                return
 
             user_bubble = BubbleLabel(user_text, is_bot=False)
             self.chat_area.add_widget(user_bubble)
