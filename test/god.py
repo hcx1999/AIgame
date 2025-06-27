@@ -1,11 +1,14 @@
 from camel.agents import ChatAgent
 from camel.messages import BaseMessage
 from camel.models import ModelFactory
+from camel.configs import ChatGPTConfig
 from camel.types import ModelType, ModelPlatformType
 from typing import Dict, List, Tuple, Any
 import re
 
-
+assistant_model_config=ChatGPTConfig(
+                temperature=0.9,
+            )
 class GodAgent:
     def __init__(
             self,
@@ -13,7 +16,8 @@ class GodAgent:
                 model_platform=ModelPlatformType.OPENAI_COMPATIBLE_MODEL,
                 model_type="Qwen/QwQ-32B",
                 url='https://api.siliconflow.cn/v1',
-                api_key='sk-qseennfhdprismchczwnkzpohyjmuwgpiaywuclsisgugfvo'
+                api_key='sk-qseennfhdprismchczwnkzpohyjmuwgpiaywuclsisgugfvo',
+                model_config_dict =assistant_model_config.as_dict(),
             ),
             system_message: str = "你是一位游戏叙事控制者",
             verbose: bool = False
