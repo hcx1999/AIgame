@@ -2,12 +2,14 @@ import sys
 import threading
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QScrollArea, QSizePolicy, QTextEdit, QPushButton)
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QThread
 from ctrller import Controller
 from chatbot import ChatBot
 import logging
 from dotenv import load_dotenv
+
+from pic import generate_style_image
 
 load_dotenv()
 
@@ -80,6 +82,7 @@ class MainWindow(QMainWindow):
             self.bot = ChatBot()
             self.setup_ui()
             self.background_summary = ""
+            self.last_image_path = "./test.png"
             QTimer.singleShot(0, self.start_game_thread)
             logger.info("MainWindow 初始化成功")
         except Exception as e:
@@ -144,6 +147,14 @@ class MainWindow(QMainWindow):
     def update_ui(self, narrative, new_role, options):
         try:
             self.add_story(narrative)
+
+            new_image_path = generate_style_image(narrative, self.last_image_path)
+            image_label = QLabel()
+            pixmap = QPixmap(new_image_path)
+            image_label.setPixmap(pixmap.scaledToWidth(256))
+            self.story_area.add_widget(image_label)
+            self.last_image_path = new_image_path  # 更新为最新图
+
             if new_role:
                 self.add_story(f"你遇到了 {new_role[0]}!")
             if options:

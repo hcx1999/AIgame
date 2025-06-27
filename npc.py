@@ -4,6 +4,9 @@ from camel.types import ModelPlatformType
 import logging
 import os
 from safe_token_counter import SimpleTokenCounter
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
