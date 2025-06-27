@@ -7,6 +7,9 @@ from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QThread
 from ctrller import Controller
 from chatbot import ChatBot
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)

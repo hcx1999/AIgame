@@ -1,6 +1,6 @@
 /test/build
 /test/dist
-test/.env
+.env
 /test/__pycache__
 /.idea
 test/AIGame.spec

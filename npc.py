@@ -2,6 +2,8 @@ from camel.agents import ChatAgent
 from camel.models import ModelFactory
 from camel.types import ModelPlatformType
 import logging
+import os
+from safe_token_counter import SimpleTokenCounter
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -12,7 +14,8 @@ try:
         model_platform=ModelPlatformType.OPENAI_COMPATIBLE_MODEL,
         model_type="Qwen/QwQ-32B",
         url='https://api.siliconflow.cn/v1',
-        api_key='sk-qseennfhdprismchczwnkzpohyjmuwgpiaywuclsisgugfvo'
+        api_key=os.getenv("SILICONFLOW_API_KEY"),
+        token_counter=SimpleTokenCounter()
     )
 
     agent = ChatAgent(

@@ -5,6 +5,8 @@ from camel.types import ModelType, ModelPlatformType
 from typing import Dict, List, Tuple, Any
 import re
 import logging
+import os
+from safe_token_counter import SimpleTokenCounter
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -23,7 +25,8 @@ class GodAgent:
                     model_platform=ModelPlatformType.OPENAI_COMPATIBLE_MODEL,
                     model_type="Qwen/QwQ-32B",
                     url='https://api.siliconflow.cn/v1',
-                    api_key='sk-qseennfhdprismchczwnkzpohyjmuwgpiaywuclsisgugfvo'
+                    api_key=os.getenv("SILICONFLOW_API_KEY"),
+                    token_counter=SimpleTokenCounter()
                 )
             self.system_message = system_message
             self.model = model
@@ -73,7 +76,7 @@ class GodAgent:
         except Exception as e:
             logger.error(f"生成剧情失败: {str(e)}")
             # 返回默认值，确保游戏可以继续
-            return ("发生了意想不到的情况...", ["观察周围", "等待片刻", "继续前进"], None)
+            return "发生了意想不到的情况...", ["观察周围", "等待片刻", "继续前进"], []
 
     def _build_prompt(self) -> str:
         """构造上帝视角提示词"""
@@ -213,7 +216,7 @@ class GodAgent:
             
         except Exception as e:
             logger.error(f"解析响应失败: {str(e)}")
-            return ("解析剧情时出现错误", ["重试", "继续"], None)
+            return "解析剧情时出现错误", ["重试", "继续"], []
 
     def apply_choice_effects(self, choice_text: str):
         """根据玩家选择更新游戏状态（需自定义逻辑）"""
